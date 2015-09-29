@@ -29,8 +29,6 @@
 			var player1 = new Player(document.body.clientWidth*1/4, document.body.clientHeight/4, 25);
 			var player2 = new Player(document.body.clientWidth*3/4, document.body.clientHeight/4, 25);
 
-			var hitPlayer = 0;
-
 			var astTime = 300;
 			var delta = 0;
 			var lastFrameTimeMS = 0;
@@ -73,7 +71,7 @@
 					astTime = 300;
 					addAsteroid();
 				}
-				if(hitPlayer == 0) requestAnimationFrame(playground.loop);
+				if(playerLost == 0) requestAnimationFrame(playground.loop);
 			}
 			this.createNewCircle = function(x,y,r){
 				var new_circle = new Circle(x,y,r,counter++);
@@ -91,33 +89,33 @@
 				var dist;
 				var minDist;
 				for (i in circles){
-					// dx = Math.abs(player1.info.cx - circles[i].info.cx);
-					// dy = Math.abs(player1.info.cy - circles[i].info.cy);
-					// if(dx <= 100 || dy <= 100){
-					// 	minDist = player1.info.r + circles[i].info.r;
-					// 	dist = Math.sqrt(dx*dx + dy*dy);
-					// 	if(dist < minDist){
-					// 		hitPlayer = 1;
-					// 		break;
-					// 	}
-					// }
-					// dx = Math.abs(player2.info.cx - circles[i].info.cx);
-					// dy = Math.abs(player2.info.cy - circles[i].info.cy);
-					// if(dx <= 100 || dy <= 100){
-					// 	minDist = player2.info.r + circles[i].info.r;
-					// 	dist = Math.sqrt(dx*dx + dy*dy);
-					// 	if(dist < minDist){
-					// 		hitPlayer = 2;
-					// 		break;
-					// 	}
-					// }
+					dx = Math.abs(player1.info.cx - circles[i].info.cx);
+					dy = Math.abs(player1.info.cy - circles[i].info.cy);
+					if(dx <= 100 || dy <= 100){
+						minDist = player1.info.r + circles[i].info.r;
+						dist = Math.sqrt(dx*dx + dy*dy);
+						if(dist < minDist){
+							playerLost = 1;
+							break;
+						}
+					}
+					dx = Math.abs(player2.info.cx - circles[i].info.cx);
+					dy = Math.abs(player2.info.cy - circles[i].info.cy);
+					if(dx <= 100 || dy <= 100){
+						minDist = player2.info.r + circles[i].info.r;
+						dist = Math.sqrt(dx*dx + dy*dy);
+						if(dist < minDist){
+							playerLost = 2;
+							break;
+						}
+					}
 				}
-				if(hitPlayer > 0){
-					gameOverEvent.player = "player" + hitPlayer;
+				if(playerLost > 0){
+					gameOverEvent.player = "player" + playerLost;
 					document.dispatchEvent(gameOverEvent);
 				}
 			}
-			for(var i=0;i<25;i++){
+			for(var i=0;i<50;i++){
 				addAsteroid();
 			}
 		}
@@ -128,6 +126,7 @@
 
 		var endPlayLoop = function(player){
 			// clearInterval(playLoop);
+			playerLost = player;
 			setTimeout(function(){
 				if(confirm('You lost ' + player +'!')){
 				    window.location.reload();  

@@ -29,9 +29,10 @@ var color = ['green',' red','blue','yellow'];
 
 function Player(cx, cy, r) {
 	var _this = this;
-	var bulletCounter = 0
+	var bulletCounter = 0;
 	var keyID = controlScheme[numShip];
 	var fillColor = color[numShip];
+	var playerNum = numShip;
 	numShip++;
 	var keysPressed = {
 		up: false,
@@ -92,10 +93,12 @@ function Player(cx, cy, r) {
 		// see if the ship touches the browser edge. If it does they lose.
 		if (this.info.cx > document.body.clientWidth - this.info.r || this.info.cx < 0 + this.info.r) {
 			gameOverEvent.player = this.info.html_id;
+			playerLost = playerNum;
 			document.dispatchEvent(gameOverEvent);
 		}
 		if (this.info.cy > document.body.clientHeight - this.info.r || this.info.cy < 0 + this.info.r) {
 			gameOverEvent.player = this.info.html_id;
+			playerLost = playerNum;
 			document.dispatchEvent(gameOverEvent);
 		}
 
