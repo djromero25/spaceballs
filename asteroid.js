@@ -31,23 +31,22 @@ function Circle(cx, cy, r, html_id) {
 	};
 
 	this.update = function(time) {
-		var el = document.getElementById(html_id);
-
 		//see if the circle is going outside the browser. if it is, reverse the velocity
-		if (this.info.cx > document.body.clientWidth - this.info.r || this.info.cx < 0 + this.info.r) {
+		if ((this.info.cx > (document.body.clientWidth - this.info.r) && this.info.velocity.x > 0) || (this.info.cx < (0 + this.info.r) && this.info.velocity.x < 0)) {
 			this.info.velocity.x = this.info.velocity.x * -1;
 		}
-		if (this.info.cy > document.body.clientHeight - this.info.r || this.info.cy < 0 + this.info.r) {
+		if ((this.info.cy > (document.body.clientHeight - this.info.r) && this.info.velocity.y > 0) || (this.info.cy < (0 + this.info.r) && this.info.velocity.y < 0)) {
 			this.info.velocity.y = this.info.velocity.y * -1;
 		}
 
-		this.info.cx = this.info.cx + this.info.velocity.x * time;
-		this.info.cy = this.info.cy + this.info.velocity.y * time;
-
+		this.info.cx = this.info.cx + this.info.velocity.x * time / vFactor;
+		this.info.cy = this.info.cy + this.info.velocity.y * time / vFactor;
+	};
+	this.draw = function(){
+		var el = document.getElementById(html_id);
 		el.setAttribute("cx", this.info.cx);
 		el.setAttribute("cy", this.info.cy);
 	};
-
 	//creates the SVG element and returns it
 	var makeSVG = function(tag, attrs) {
 		var el = document.createElementNS('http://www.w3.org/2000/svg', tag);

@@ -89,8 +89,6 @@ function Player(cx, cy, r) {
 		else if (e.keyCode == keyID.down) keysPressed['down'] = false;
 	});
 	this.update = function(time) {
-		var el = document.getElementById(this.info.html_id);
-
 		// see if the ship touches the browser edge. If it does they lose.
 		if (this.info.cx > document.body.clientWidth - this.info.r || this.info.cx < 0 + this.info.r) {
 			gameOverEvent.player = this.info.html_id;
@@ -109,13 +107,14 @@ function Player(cx, cy, r) {
 		else if (keysPressed['right']) this.info.vx = 5;
 		else this.info.vx = 0;
 
-		this.info.cx = this.info.cx + this.info.vx * time;
-		this.info.cy = this.info.cy + this.info.vy * time;
-
+		this.info.cx = this.info.cx + this.info.vx * time / vFactor;
+		this.info.cy = this.info.cy + this.info.vy * time / vFactor;
+	};
+	this.draw = function(){
+		var el = document.getElementById(this.info.html_id);
 		el.setAttribute("cx", this.info.cx);
 		el.setAttribute("cy", this.info.cy);
 	};
-
 	//creates the SVG element and returns it
 	var makeSVG = function(tag, attrs) {
 		var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
