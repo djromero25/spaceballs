@@ -1,9 +1,11 @@
-function Circle(cx, cy, r, html_id) {
+function Bullet(cx, cy, r, html_id, color) {
 	// var html_id = html_id;
 	this.info = {
 		cx: cx,
 		cy: cy,
-		r: r
+		r: r,
+		html_id: html_id,
+		color: color
 	};
 
 	//private function that generates a random number
@@ -12,28 +14,30 @@ function Circle(cx, cy, r, html_id) {
 	};
 
 	this.initialize = function() {
-		//give a random velocity for the circle
+		//give a random velocity for the bullet
 		this.info.velocity = {
 			x: randomNumberBetween(-3, 3),
 			y: randomNumberBetween(-3, 3)
 		};
 		
-		//create a circle 
-		var circle = makeSVG('circle', {
+		//create a bullet
+		var bullet = makeSVG('circle', {
 			cx: this.info.cx,
 			cy: this.info.cy,
 			r: this.info.r,
 			id: html_id,
-			style: "fill: black"
+			fill: 'none',
+			'stroke-width': (this.info.r/2),
+			stroke: this.info.color,
 		});
 
-		document.getElementById('svg').appendChild(circle);
+		document.getElementById('svg').appendChild(bullet);
 	};
 
 	this.update = function(time) {
 		var el = document.getElementById(html_id);
 
-		//see if the circle is going outside the browser. if it is, reverse the velocity
+		//see if the bullet is going outside the browser. if it is, reverse the velocity
 		if (this.info.cx > document.body.clientWidth - this.info.r || this.info.cx < 0 + this.info.r) {
 			this.info.velocity.x = this.info.velocity.x * -1;
 		}

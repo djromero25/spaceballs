@@ -2,7 +2,9 @@
 <head>
 	<title>Javascript Box - OOP demo</title>
 	<script src="jquery-2.1.4.min.js"></script>
+	<script src="events.js"></script>
 	<script src="asteroid.js"></script>
+	<script src="bullet.js"></script>
 	<script src="ship.js"></script>
 </head>
 <body>
@@ -19,80 +21,116 @@
 	<script>
 		function PlayGround()
 		{
+			var _this = this;
 			var counter = 0;  //counts the number of circles created
-			var circles = [ ]; //array that will hold all the circles created in the app
-			var player = new Player(document.body.clientWidth/2, document.body.clientHeight/4, 50);
+			var currentCorner = 0;
+			var cornerCoord = [{x:100,y:100},{x:document.body.clientWidth-100,y:100},{x:document.body.clientWidth-100,y:document.body.clientHeight-100},{x:100,y:document.body.clientHeight-100}];
+			var circles = []; //array that will hold all the circles created in the app
+			var player1 = new Player(document.body.clientWidth*1/4, document.body.clientHeight/4, 25);
+			var player2 = new Player(document.body.clientWidth*3/4, document.body.clientHeight/4, 25);
+
+			var astTime = 300;
 
 			//a loop that updates the circle's position on the screen
 			this.loop = function(){
+				
 				for(circle in circles)
 				{
 					circles[circle].update(1);
 				}
-				player.update(1);
+				for(bullet in bulletArray)
+				{
+					bulletArray[bullet].update(1);
+				}
+				player1.update(1);
+				player2.update(1);
 				collisionCheck();
+				if(astTime-- == 0){
+					astTime = 300;
+					addAsteroid();
+				}
 			}
-
 			this.createNewCircle = function(x,y,r){
 				var new_circle = new Circle(x,y,r,counter++);
+				$("#"+(counter-1)).hide();
+				$("#"+(counter-1)).fadeTo(1000,1);
 				circles.push(new_circle);
-				// console.log('created a new circle!', new_circle);
 			}
-
+			var addAsteroid = function(){
+				r = Math.floor(Math.random() * (50 - 5 + 1)) + 5;
+				_this.createNewCircle(cornerCoord[currentCorner].x, cornerCoord[currentCorner].y, r);
+				if(currentCorner == 3) currentCorner = 0;
+				else currentCorner++;
+			}
 			function collisionCheck(){
 				var dist;
 				var minDist;
-				var collisionOccured = false;
+				var hitPlayer = 0;
 				for (i in circles){
-					minDist = player.info.r + circles[i].info.r;
-					dx = player.info.cx - circles[i].info.cx;
-					dy = player.info.cy - circles[i].info.cy;
-					dist = Math.sqrt(dx*dx + dy*dy);
-					if(dist < minDist){
-						collisionOccured = true;
-						break;
+					dx = Math.abs(player1.info.cx - circles[i].info.cx);
+					dy = Math.abs(player1.info.cy - circles[i].info.cy);
+					if(dx <= 100 || dy <= 100){
+						minDist = player1.info.r + circles[i].info.r;
+						dist = Math.sqrt(dx*dx + dy*dy);
+						if(dist < minDist){
+							hitPlayer = 1;
+							break;
+						}
 					}
-				}
-				if(collisionOccured){
-					document.dispatchEvent(gameOver);
-					// if(confirm('You lost! ' + dist + " " + minDist)){
-					//     window.location.reload();  
+					// dx = Math.abs(player2.info.cx - circles[i].info.cx);
+					// dy = Math.abs(player2.info.cy - circles[i].info.cy);
+					// if(dx <= 100 || dy <= 100){
+					// 	minDist = player2.info.r + circles[i].info.r;
+					// 	dist = Math.sqrt(dx*dx + dy*dy);
+					// 	if(dist < minDist){
+					// 		hitPlayer = 2;
+					// 		break;
+					// 	}
 					// }
 				}
+				if(hitPlayer > 0){
+					gameOverEvent.player = "player" + hitPlayer;
+					document.dispatchEvent(gameOverEvent);
+				}
 			}
-
-			//create one circle when the game starts
-			this.createNewCircle(document.body.clientWidth/2, document.body.clientHeight/2, 25);
+			for(var i=0;i<50;i++){
+				addAsteroid();
+			}
 		}
 
 		var playground = new PlayGround();
 
 		var playLoop = setInterval(playground.loop, 15);
 
-		var gameOver = new Event('gameOver');
-		var endPlayLoop = function(){
-			console.log('loop ended');
+		var endPlayLoop = function(player){
 			clearInterval(playLoop);
+			setTimeout(function(){
+				if(confirm('You lost ' + player +'!')){
+				    window.location.reload();  
+				}
+			}, 100);
 		}
-		document.addEventListener('gameOver',endPlayLoop)
+		document.addEventListener('gameOver',function(e){
+			endPlayLoop(e.player);
+		});
 
-		var mousedown_time;
+		// var mousedown_time;
 
-		function getTime(){
-			var date = new Date();
-			return date.getTime();
-		}
+		// function getTime(){
+		// 	var date = new Date();
+		// 	return date.getTime();
+		// }
 
-		document.onmousedown = function(e){
-			mousedown_time = getTime();
-		}
-		document.onmouseup = function(e){
-			time_pressed = getTime() - mousedown_time;
-			// console.log('You held your mouse down for', time_pressed, 'miliseconds.');
-			r = time_pressed * 50 / 1000;
-			if(r > 50) r = 50;
-			playground.createNewCircle(e.x,e.y,r);
-		}
+		// document.onmousedown = function(e){
+		// 	mousedown_time = getTime();
+		// }
+		// document.onmouseup = function(e){
+		// 	time_pressed = getTime() - mousedown_time;
+		// 	// console.log('You held your mouse down for', time_pressed, 'miliseconds.');
+		// 	r = time_pressed * 50 / 1000;
+		// 	if(r > 50) r = 50;
+		// 	playground.createNewCircle(e.x,e.y,r);
+		// }
 	</script>
 
 </body>
