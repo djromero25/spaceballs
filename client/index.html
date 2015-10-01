@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" ng-app='SpaceBalls'>
+<head>
+	<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Space Balls</title>
+	
+	<!-- Bootstrap -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <!-- <link href="/static/css/style.css" rel="stylesheet"> -->
+
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/static/js/jquery-2.1.4.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/static/js/bootstrap.js"></script>
+	<script src="/static/js/angular.js"></script>
+	<script src="/static/js/angular-route.js"></script>
+	<script src="index.controller.js"></script>
+
+    <!-- FastClick is used to eliminate the 300ms delay when clicking items on a mobile device
+        https://github.com/ftlabs/fastclick -->
+    <script src="/static/js/fastclick.js"></script>
+
+    <!-- If Socket.IO is used with Express, then the /socket.io/ path will
+        serve the proper Socket.IO javascript files used by the browser -->
+    <script src="/socket.io/socket.io.js"></script>
+
+<!-- 	// <script src="/views/appointment/appointment.controller.js"></script> -->
+</head>
+<style>
+	html, body {
+		margin:0; padding:0; overflow:hidden;
+	}
+	.container{
+		position:fixed; top:0; left:0; height:100%; width:100%;
+	}
+	div.centered-header{
+		position:fixed; top:0; left:0; height:100%; width:100%;
+	}
+	#gameArea {
+		position:fixed; top:0; left:0; height:100%; width:100%;
+	}
+</style>
+<body class="container">
+	<div class="centered-header">
+		<style>
+		svg {
+			position:fixed; top:0; left:0; height:100%; width:100%;
+		}
+	</style>
+	<svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+		<div id="gameArea" ng-view="">
+			
+		</div>
+	</div>
+</body>
+</html>
