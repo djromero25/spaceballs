@@ -267,6 +267,7 @@ jQuery(function($){
                     $(".createGameWrapper").prepend("<button id='quickStart'>Start Game Now</button>");
                     $("#quickStart").click(function(){
                         IO.socket.emit('hostRoomFull', App.gameId);
+                        $('#music').html("<audio src='/static/Lightning.mp3' loop='loop' autoplay='autoplay'></audio>");
                     });
                 }
 
@@ -274,8 +275,11 @@ jQuery(function($){
                     // console.log('Room is full. Almost ready!');
 
                     // Let the server know that two players are present.
-                    if(!App.Host.gameStarted) IO.socket.emit('hostRoomFull', App.gameId);
-                    App.Host.gameStarted = true;
+                    if(!App.Host.gameStarted){
+                        IO.socket.emit('hostRoomFull', App.gameId);
+                        $('#music').html("<audio src='/static/Lightning.mp3' loop='loop' autoplay='autoplay'></audio>");
+                        App.Host.gameStarted = true;
+                    }
                 }
             },
 

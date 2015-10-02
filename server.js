@@ -3,16 +3,11 @@ var express = require('express');
 // require path so that we can use path stuff like path.join
 var path = require('path');
 
-var bodyParser = require('body-parser');
-
 // Import the gameSocket file.
 var game = require('./client/static/js/gameSocket');
 
 // instantiate the app
 var app = express();
-
-app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded());
 
 // This goes in our server.js file so that we actually use the mongoose config file!
 // require('./server/config/mongoose.js');
