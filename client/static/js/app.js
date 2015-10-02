@@ -326,7 +326,12 @@ jQuery(function($){
                 });
             },
             removeCircle: function(html_id){
+                var offset = $('#' + html_id).offset();
                 $('#' + html_id).remove();
+                if(html_id[0] == 'p'){
+                    $('.container').append('<div class="explosion" style="position: fixed; top:' + offset.top + 'px; left: ' + offset.left + 'px; width:50px; height:50px; border-radius: 25px;background-color:orange"></div>');
+                    $('div.explosion').hide('explode',{pieces: 36}, 750);
+                }
             },
             addCircle: function(attrs){
                 var el = superDoc.createElementNS('http://www.w3.org/2000/svg', 'circle');
