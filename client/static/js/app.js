@@ -136,6 +136,7 @@ jQuery(function($){
             App.$templateNewGame = $('#create-game-template').html();
             App.$templateJoinGame = $('#join-game-template').html();
             App.$hostGame = $('#host-game-template').html();
+            App.$hootpad = $('#hootpad-template').html();
         },
 
         /**
@@ -208,9 +209,11 @@ jQuery(function($){
 
                 App.Host.displayNewGameScreen();
                 IO.socket.on('gameLoop', App.Host.draw );
-                IO.socket.on('playerCrash', App.Host.removePlayer );
                 IO.socket.on('newCircle', App.Host.addCircle);
+                IO.socket.on('removeCircle', App.Host.removeCircle);
                 IO.socket.on('gameOver', App.Host.gameOver);
+                IO.socket.on('bulletFired', App.Host.removeRing);
+                IO.socket.on('bulletReady', App.Host.addRing);
                 // console.log("Game started with ID: " + App.gameId + ' by host: ' + App.mySocketId);
             },
 
@@ -247,13 +250,13 @@ jQuery(function($){
 
                 // Increment the number of players in the room
                 App.Host.numPlayersInRoom += 1;
-                console.log(App.Host.numPlayersInRoom);
+                // console.log(App.Host.numPlayersInRoom);
                 data = {mySocketId: data.mySocketId, shipNum: App.Host.numPlayersInRoom};
                 IO.socket.emit('playerCounted', data);
                 IO.socket.emit('socket',App.$window.width(), App.$window.height(), App.gameId);
 
                 // If two players have joined, start the game!
-                if (App.Host.numPlayersInRoom === 2) {
+                if (App.Host.numPlayersInRoom === 3) {
                     // console.log('Room is full. Almost ready!');
 
                     // Let the server know that two players are present.
@@ -268,25 +271,27 @@ jQuery(function($){
 
                 // Prepare the game screen with new HTML
                 App.$gameArea.html(App.$hostGame);
+                $('body').attr('background','/static/img/spaceBackground.jpg');
 
                 // Begin the on-screen countdown timer
                 var $secondsLeft = $('#hostWord');
                 App.countDown( $secondsLeft, 1, function(){
+                    App.Host.playerIds = {};
                     IO.socket.emit('hostCountdownFinished', App.gameId);
                 });
 
                 // Display the players' names on screen
-                $('#player1Score')
-                    .find('.playerName')
-                    .html(App.Host.players[0].playerName);
+                // $('#player1Score')
+                //     .find('.playerName')
+                //     .html(App.Host.players[0].playerName);
 
-                $('#player2Score')
-                    .find('.playerName')
-                    .html(App.Host.players[1].playerName);
+                // $('#player2Score')
+                //     .find('.playerName')
+                //     .html(App.Host.players[1].playerName);
 
                 // Set the Score section on screen to 0 for each player.
-                $('#player1Score').find('.score').attr('id',App.Host.players[0].mySocketId);
-                $('#player2Score').find('.score').attr('id',App.Host.players[1].mySocketId);
+                // $('#player1Score').find('.score').attr('id',App.Host.players[0].mySocketId);
+                // $('#player2Score').find('.score').attr('id',App.Host.players[1].mySocketId);
             },
             draw: function(circles){
                 var el;
@@ -300,24 +305,36 @@ jQuery(function($){
                     IO.socket.emit('newFrame', timestamp);
                 });
             },
-            // removeCircle: function(){
-
-            // },
+            removeCircle: function(html_id){
+                $('#' + html_id).remove();
+            },
             addCircle: function(attrs){
                 var el = superDoc.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 for (var k in attrs) {
                     el.setAttribute(k, attrs[k]);
                 }
-                console.log(attrs);
+                // console.log(attrs);
                 $('#svg').append(el);
             },
-
+            removeRing: function(html_id){
+                $('#' + html_id).removeAttr('stroke-width');
+                $('#' + html_id).removeAttr('stroke');
+            },
+            addRing: function(html_id){
+                $('#' + html_id).attr('stroke-width', 8);
+                $('#' + html_id).attr('stroke', 'purple');
+            },
             /**
              * Let everyone know the game has ended.
              * @param data
              */
             gameOver : function(player) {
-                alert(player + " lost!");
+                var str = "<p>"+player+" is the winner!</p>";
+                str += "<button id='resetButton'>Play Again</button>";
+                App.$gameArea.html(str);
+                $('#resetButton').click(function(){
+                    App.Host.gameCountdown();
+                });
             },
 
             /**
@@ -400,6 +417,20 @@ jQuery(function($){
                 // Send the gameId and playerName to the server
                 IO.socket.emit('playerJoinGame', data);
                 IO.socket.on('shipMade', App.Player.onShipMade);
+                $('#gameArea').html('<style>#joystick, #swiper{display: inline-block;width: 50%;height: 100%;}</style><div id="joystick"></div><div id="swiper"></div>');
+                // App.$gameArea.html(App.$hootpad);
+                // $.ajax({
+                //     type: 'GET',
+                //     url: "http://192.168.1.3:8888/daniel",
+                //     dataType: 'jsonp',
+                //     success: function (data) {
+                //         // buttons = data[0].buttons;
+                //         $( "#hootpad-controller" ).html( data[0].code );
+                //         // for(i in buttons){
+                //         //     $("#"+buttons[i]).click()
+                //         // }
+                //     }
+                // });
 
                 // Set the appropriate properties for the current player.
                 App.myRole = 'Player';
@@ -408,7 +439,24 @@ jQuery(function($){
 
             onShipMade: function(pId){
                 IO.socket.emit('playerReady', pId);
-                //up: 38, left: 37, right: 39, down: 40   
+                var joystick = superDoc.getElementById('joystick');
+                var mcj = new Hammer.Manager(joystick);
+                mcj.add( new Hammer.Pan() );
+                // mc.add( new Hammer.Press({event: pressup}) );
+                mcj.on("panmove", function(e){
+                    IO.socket.emit('joystickMoved', {dx: e.deltaX, dy: e.deltaY, pId: pId});
+                });
+                mcj.on("panend pancancel", function(e){
+                    IO.socket.emit('joystickMoved', {dx: 0, dy: 0, pId: pId});
+                });
+                var swiper = superDoc.getElementById('swiper');
+                var mcs = new Hammer.Manager(swiper);
+                mcs.add( new Hammer.Swipe() );
+                // mc.add( new Hammer.Press({event: pressup}) );
+                mcs.on("swipe", function(e){
+                    IO.socket.emit('swipeOccurred', {vx: e.velocityX, vy: e.velocityY, pId: pId});
+                });
+                //up: 38, left: 37, right: 39, down: 40 
                 $(document).keydown(function(e) {
                     // console.log(e.keyCode);
                     var keyEvent = false;
@@ -424,9 +472,6 @@ jQuery(function($){
                     } else if (e.keyCode == 40 && !keysPressed['down']) {
                         keysPressed['down'] = true;
                         keyEvent = 'downButtonPressed';
-                    } else if (e.keyCode == 32) { //32 is spacebar
-                        var bullet = new Bullet(_this.info.cx, _this.info.cy, 15, fillColor+bulletCounter++,fillColor);
-                        bulletArray.push(bullet);
                     }
                     if(keyEvent) IO.socket.emit(keyEvent, pId);
                 });
@@ -488,8 +533,7 @@ jQuery(function($){
              */
             gameCountdown : function(hostData) {
                 App.Player.hostSocketId = hostData.mySocketId;
-                $('#gameArea')
-                    .html('<div class="gameOver">Get Ready!</div>');
+                // $('#gameArea').html('<div class="gameOver">Get Ready!</div>');
             },
 
             /**

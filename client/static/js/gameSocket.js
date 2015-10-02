@@ -34,6 +34,8 @@ exports.initGame = function(sio, socket) {
     gameSocket.on('playerCounted', function(data){io.to(data.mySocketId).emit('shipMade', data.shipNum);});
     gameSocket.on('playerReady', onPlayerReady);
     gameSocket.on('newFrame', runLoop);
+    gameSocket.on('joystickMoved', onJoystickMove);
+    gameSocket.on('swipeOccurred', onSwipe);
 };
 
 /* *******************************
@@ -47,7 +49,7 @@ exports.initGame = function(sio, socket) {
  */
 function hostCreateNewGame(w,h) {
     // Create a unique Socket.IO Room
-    var thisGameId = (Math.random() * 100000) | 0;
+    var thisGameId = 1;//(Math.random() * 100000) | 0;
 
     // Return the Room ID (gameId) and the socket ID (mySocketId) to the browser client
     this.emit('newGameCreated', {
@@ -148,6 +150,26 @@ var onRightButtonReleased = function(shipNum) { playground.setVelocity(shipNum-1
 var onDownButtonReleased = function(shipNum) { playground.setVelocity(shipNum-1,'vy', -1); };
 var onPlayerReady = function(pId){ playground.addPlayer(pId); };
 var runLoop = function(timestamp){ playground.loop(timestamp); };
+var onJoystickMove = function(data){
+    var maxVel = 10;
+    var vx = data.dx / 20;
+    if(vx > maxVel) vx = maxVel;
+    else if(vx < -1*maxVel) vx = -1*maxVel;
+    var vy = data.dy / 20;
+    if(vy > maxVel) vy = maxVel;
+    else if(vy < -1*maxVel) vy = -1*maxVel;
+    playground.setBothVelocity(data.pId-1, vx, vy);
+};
+var onSwipe = function(data){
+    var maxVel = 15;
+    var vx = data.vx * -5;
+    if(vx > maxVel) vx = maxVel;
+    else if(vx < -1*maxVel) vx = -1*maxVel;
+    var vy = data.vy * -5;
+    if(vy > maxVel) vy = maxVel;
+    else if(vy < -1*maxVel) vy = -1*maxVel;
+    playground.shootBullet(data.pId-1, vx, vy);
+};
 
 
 /* *************************
@@ -170,21 +192,43 @@ var PlayGround = function(gameId) {
     var currentCorner = 0;
     var cornerCoord;
     var asteroids = []; //array that will hold all the circles created in the app
-    var players = [];
-
+    this.players = [];
+    this.bullets = {};
+    var bulletActive = [true,true,true,true];
     var astTime = 300;
     var delta = 0;
     var lastFrameTimeMS = 0;
     // We want to simulate 1000 ms / 60 FPS = 16.667 ms per frame every time we run update()
     var timestep = 1000 / 60;
+    var firstLoop = true;
+    this.deadPlayers = [false,false,false,false];
 
     this.addPlayer = function(pId) {
-        var l = pId + 1;
-        var player = new Ship(_W*l/8, _H/4, 25, pId, gameId);
-        players.push(player);
+        var player = new Ship(_W/2, _H*pId/5, 25, pId, gameId);
+        this.players.push(player);
     };
     this.setVelocity = function(shipNum, a, b) {
-        players[shipNum].setVelocity(a, b);
+        this.players[shipNum].setVelocity(a, b);
+    };
+    this.setBothVelocity = function(shipNum, vx, vy) {
+        this.players[shipNum].setBothVelocity(vx, vy);
+    };
+    this.shootBullet = function (shipNum, vx, vy){
+        if(!bulletActive[shipNum]) return;
+        bulletActive[shipNum] =  false;
+        var cx = this.players[shipNum].info.cx + (this.players[shipNum].info.r + 15) * vx/Math.sqrt(vx*vx + vy*vy);
+        var cy = this.players[shipNum].info.cy + (this.players[shipNum].info.r + 15) * vy/Math.sqrt(vx*vx + vy*vy);
+        var bullet = new Bullet(cx, cy, 10, vx, vy, 'bullet'+shipNum, 'purple', gameId);
+        this.bullets['bullet'+shipNum] = bullet;
+        setTimeout(function(){
+            _this.bullets['bullet'+shipNum] = false;
+            io.sockets.in(gameId).emit('removeCircle', 'bullet'+shipNum);
+        }, 3000);
+        io.sockets.in(gameId).emit('bulletFired', _this.players[shipNum].info.html_id);
+        setTimeout(function(){
+            bulletActive[shipNum] =  true;
+            io.sockets.in(gameId).emit('bulletReady', _this.players[shipNum].info.html_id);
+        }, 5000);
     };
     this.setWindow = function(w,h) {
         console.log("setting window");
@@ -194,23 +238,34 @@ var PlayGround = function(gameId) {
 
     //a loop that updates the asteroid's position on the screen
     this.loop = function(timestamp) {
-        if(gameOver) return; 
+        if(gameOver) return;
         var data;
         if(timestamp === undefined) delta = 0;
         else {
             delta += timestamp - lastFrameTimeMS;
+            if(firstLoop){
+                delta = 0;
+                firstLoop = false;
+            }
             lastFrameTimeMS = timestamp;
         }
         //Update positions
         var numUpdateSteps = 0;
-        var asteroid, bullet, player;
+        var asteroid, bullet, player, playerData;
         while (delta >= timestep) {
             data = [];
             for (asteroid in asteroids) {
                 data.push(asteroids[asteroid].update(timestep));
             }
-            for (player in players) {
-                data.push(players[player].update(timestep));
+            for (player in this.players) {
+                if(this.players[player]){
+                    playerData = this.players[player].update(timestep);
+                    if(!playerData) someoneDied(player.info.html_id,player);
+                    else data.push(playerData);
+                }
+            }
+            for (bullet in this.bullets) {
+               if(this.bullets[bullet]) data.push(this.bullets[bullet].update(timestep));
             }
             delta -= timestep;
             if (++numUpdateSteps >= 240) {
@@ -219,8 +274,10 @@ var PlayGround = function(gameId) {
             }
         }
         io.sockets.in(gameId).emit('gameLoop', data);
-        for (player in players) {
-            collisionCheck(players[player]);
+        for (player in this.players) {
+            if(this.players[player]){
+                collisionCheck(this.players[player], player);
+            }
         }
         if (astTime-- === 0) {
             astTime = 300;
@@ -240,22 +297,43 @@ var PlayGround = function(gameId) {
         else currentCorner++;
     };
 
-    function collisionCheck(player) {
+    function collisionCheck(player, playerIndex) {
         var dist;
         var minDist;
-
-        for (var i in asteroids) {
-            var dx = Math.abs(player.info.cx - asteroids[i].info.cx);
-            var dy = Math.abs(player.info.cy - asteroids[i].info.cy);
+        var dx, dy, i;
+        for (i in asteroids) {
+            dx = Math.abs(player.info.cx - asteroids[i].info.cx);
+            dy = Math.abs(player.info.cy - asteroids[i].info.cy);
             if (dx <= 100 || dy <= 100) {
                 minDist = player.info.r + asteroids[i].info.r;
                 dist = Math.sqrt(dx * dx + dy * dy);
                 if(dist < minDist){
-                    gameOver = true;
-                    io.to(gameId).emit('gameOver', player.info.html_id);
+                    someoneDied(player.info.html_id,playerIndex);
                     break;
                 }
             }
+        }
+        var keys = Object.keys(_this.bullets);
+        for (i=0;i<keys.length;i++) {
+            if(_this.bullets[keys[i]]){
+                dx = Math.abs(player.info.cx - _this.bullets[keys[i]].info.cx);
+                dy = Math.abs(player.info.cy - _this.bullets[keys[i]].info.cy);
+                minDist = player.info.r + _this.bullets[keys[i]].info.r;
+                dist = Math.sqrt(dx * dx + dy * dy);
+                if(dist < minDist){
+                    someoneDied(player.info.html_id,playerIndex);
+                    break;
+                }
+            }
+        }
+    }
+    function someoneDied(html_id, playerIndexToRemove){
+        _this.deadPlayers[playerIndexToRemove] = _this.players[playerIndexToRemove];
+        _this.players[playerIndexToRemove] = false;
+        io.sockets.in(gameId).emit('removeCircle', html_id);
+        if(_this.players.length <= 1){
+            gameOver = true;
+            io.to(gameId).emit('gameOver', _this.players[0].html_id);
         }
     }
     this.init = function() {
@@ -306,7 +384,9 @@ var Asteroid = function (cx, cy, r, html_id, gameId) {
             cy: this.info.cy,
             r: this.info.r,
             id: this.info.html_id,
-            style: "fill: black"
+            style: "fill: #5C1F00",
+            'stroke-width': 3,
+            stroke: 'white'
         };
         io.sockets.in(gameId).emit('newCircle', data);
     };
@@ -346,7 +426,9 @@ var Ship = function(cx, cy, r, shipNum, gameId) {
             cy: this.info.cy,
             r: this.info.r,
             id: this.info.html_id,
-            style: "fill: " + fillColor
+            style: "fill: " + fillColor,
+            'stroke-width': 8,
+            stroke: 'purple'
         };
         io.sockets.in(gameId).emit('newCircle', data);
     };
@@ -354,11 +436,14 @@ var Ship = function(cx, cy, r, shipNum, gameId) {
         if(axis == 'vx') this.info.vx += 5 * dir;
         else if(axis == 'vy') this.info.vy += 5 * dir;
     };
+    this.setBothVelocity = function(vx, vy) {
+        this.info.vx = vx;
+        this.info.vy = vy;
+    };
     this.update = function(time) {
         // see if the ship touches the browser edge. If it does they lose.
         if (this.info.cx > _W - this.info.r || this.info.cx < 0 + this.info.r || this.info.cy > _H - this.info.r || this.info.cy < 0 + this.info.r) {
-            gameOver = true;
-            io.to(gameId).emit('gameOver', this.info.html_id);
+            return false;
         }
         // console.log(this.info.vx);
         this.info.cx = this.info.cx + this.info.vx * time / vFactor;
@@ -366,5 +451,54 @@ var Ship = function(cx, cy, r, shipNum, gameId) {
         return {cx: this.info.cx, cy: this.info.cy, html_id: this.info.html_id};
     };
   
+    this.initialize();
+};
+var Bullet = function(cx, cy, r, vx, vy, html_id, color, gameId) {
+    // var html_id = html_id;
+    this.info = {
+        cx: cx,
+        cy: cy,
+        r: r,
+        html_id: html_id,
+        color: color,
+        velocity: {
+            x: vx,
+            y: vy,
+        }
+    };
+
+    //private function that generates a random number
+    var randomNumberBetween = function(min, max) {
+        return Math.random() * (max - min) + min;
+    };
+
+    this.initialize = function() {
+        
+        //create a bullet
+        var data = {
+            cx: this.info.cx,
+            cy: this.info.cy,
+            r: this.info.r,
+            id: html_id,
+            fill: 'none',
+            'stroke-width': (this.info.r/2),
+            stroke: this.info.color
+        };
+        io.sockets.in(gameId).emit('newCircle', data);
+    };
+
+    this.update = function(time) {
+        //see if the bullet is going outside the browser. if it is, reverse the velocity
+        if (this.info.cx > _W - this.info.r || this.info.cx < 0 + this.info.r) {
+            this.info.velocity.x = this.info.velocity.x * -1;
+        }
+        if (this.info.cy > _H - this.info.r || this.info.cy < 0 + this.info.r) {
+            this.info.velocity.y = this.info.velocity.y * -1;
+        }
+
+        this.info.cx = this.info.cx + this.info.velocity.x * time / vFactor;
+        this.info.cy = this.info.cy + this.info.velocity.y * time / vFactor;
+        return {cx: this.info.cx, cy: this.info.cy, html_id: this.info.html_id};
+    };
     this.initialize();
 };
