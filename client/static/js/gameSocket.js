@@ -342,7 +342,8 @@ var PlayGround = function(gameId) {
         }
         if(count <= 1){
             gameOver = true;
-            io.to(gameId).emit('gameOver', _this.players[playerIndex].info.html_id || false);
+            if(_this.players[playerIndex]) io.to(gameId).emit('gameOver', _this.players[playerIndex].info.html_id || false);
+            else io.to(gameId).emit('gameOver', false);
         }
     }
     this.init = function() {
