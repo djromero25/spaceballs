@@ -49,7 +49,7 @@ exports.initGame = function(sio, socket) {
  */
 function hostCreateNewGame(w,h) {
     // Create a unique Socket.IO Room
-    var thisGameId = 1;//(Math.random() * 100000) | 0;
+    var thisGameId = (Math.random() * 10000) | 0;
 
     // Return the Room ID (gameId) and the socket ID (mySocketId) to the browser client
     this.emit('newGameCreated', {
