@@ -2,7 +2,16 @@
 <script id="intro-screen-template" type="text/template">
 
     <div class="titleWrapper">
-
+        <style>
+            div{
+                font-size: 10vw;
+                text-align: center;
+            }
+            button.btn{
+                font-size: 5vw;
+                text-align: center;
+            }
+        </style>
         <div class="title">
             SPACE BALLS
         </div>
@@ -21,7 +30,12 @@
 <!-- This screen appears when a user clicks "CREATE" on the Title Screen -->
 <script id="create-game-template" type="text/template">
     <div class="createGameWrapper">
-
+        <style>
+            div{
+                font-size: 4vw;
+                text-align: center;
+            }
+        </style>
         <div class="info">Open this site on your mobile device:</div>
         <div id="gameURL" class="infoBig">Error!</div>
 
@@ -35,6 +49,16 @@
 <!-- This scrreen appears when a player clicks "JOIN" on the Title Screen -->
 <script id="join-game-template" type="text/template">
     <div class="joinGameWrapper">
+        <style>
+            div{
+                font-size: 5vw;
+                text-align: center;
+            }
+            button.btn{
+                font-size: 5vw;
+                text-align: center;
+            }
+        </style>
         <div class="info">
             <label for="inputPlayerName">Your Name:</label>
             <input id="inputPlayerName" type="text" />
@@ -54,20 +78,35 @@
 
 <!-- This is the 'Host' screen. It displays the word for each player to match -->
 <script id="host-game-template" type="text/template">
+    <style>
+        div{
+            font-size: 5vw;
+            text-align: center;
+        }
+        button.btn{
+            font-size: 5vw;
+            text-align: center;
+        }
+        #hostWord{
+            font-size:40vw;
+            color: #4DAD6D;
+        }
+    </style>
     <div id="wordArea">
         <div id="hostWord">5</div>
     </div>
     <div id="playerScores">
         <div id="player1Score" class="playerScore">
-            <span class="score">0</span><span class="playerName">Player 1</span>
+            <span class="score"></span><span class="playerName"></span>
         </div>
         <div id="player2Score" class="playerScore">
-            <span class="playerName">Player 2</span><span class="score">0</span>
+            <span class="playerName"></span><span class="score"></span>
         </div>
     </div>
 </script>
 <script id="hootpad-template" type="text/template">
     <div id="hootpad-controller">
+    
         <p>this is a test</p>
     </div>
 </script>

@@ -189,6 +189,8 @@ jQuery(function($){
              */
             numPlayersInRoom: 0,
 
+            scores: [],
+
             /**
              * Handler for the "Start" button on the Title Screen.
              */
@@ -245,6 +247,8 @@ jQuery(function($){
                     .append('<p/>')
                     .text('Player ' + data.playerName + ' joined the game.');
 
+                App.Host.scores.push({name: data.playerName,score: 0});
+
                 // Store the new player's data on the Host.
                 App.Host.players.push(data);
 
@@ -256,7 +260,7 @@ jQuery(function($){
                 IO.socket.emit('socket',App.$window.width(), App.$window.height(), App.gameId);
 
                 // If two players have joined, start the game!
-                if (App.Host.numPlayersInRoom === 2) {
+                if (App.Host.numPlayersInRoom === 1) {
                     // console.log('Room is full. Almost ready!');
 
                     // Let the server know that two players are present.
@@ -277,6 +281,7 @@ jQuery(function($){
                 var $secondsLeft = $('#hostWord');
                 App.countDown( $secondsLeft, 3, function(){
                     $('#svg').empty();
+                    $secondsLeft.hide();
                     IO.socket.emit('hostCountdownFinished', App.gameId);
                 });
 
@@ -306,6 +311,8 @@ jQuery(function($){
                 });
             },
             removeCircle: function(html_id){
+                if(html_id[0] ==  'p') $('#' + html_id).hide('explode', 16);
+                else if(html_id[0] == 'b') $('#' + html_id).hide('fold');
                 $('#' + html_id).remove();
             },
             addCircle: function(attrs){
@@ -315,6 +322,11 @@ jQuery(function($){
                 }
                 // console.log(attrs);
                 $('#svg').append(el);
+                $('#' + el.id).hide();
+                if(el.id[0] == 'a') $('#' + el.id).show('fade', 1000);
+                else $('#' + el.id).show();
+                // $('#' + el.id).hide("explode", { pieces: 64 }, 2000);
+                
             },
             removeRing: function(html_id){
                 $('#' + html_id).removeAttr('stroke-width');
@@ -329,8 +341,18 @@ jQuery(function($){
              * @param data
              */
             gameOver : function(player) {
-                var str = "<p>"+player+" is the winner!</p>";
-                str += "<button id='resetButton'>Play Again</button>";
+                var str;
+                var color = ['green',' red','blue','yellow'];
+                if(player){
+                    str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>"+player+" is the winner!</p>";
+                    console.log(App.Host.scores, player.length, player);
+                    App.Host.scores[player[player.length-1]-1].score++;
+                }
+                else str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>Tie Game!</p>";
+                for(var i in App.Host.scores){
+                    str += "<p style='font-size: 5vw; text-align: center; color:" + color[i] + "'>" + App.Host.scores[i].name + ": " + App.Host.scores[i].score + "</p>";
+                }
+                str += "<button id='resetButton' class='btn' style='font-size: 5vw; text-align: center'>Play Again</button></div>";
                 App.$gameArea.html(str);
                 $('#resetButton').click(function(){
                     App.Host.gameCountdown();
