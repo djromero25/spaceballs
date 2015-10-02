@@ -191,6 +191,8 @@ jQuery(function($){
 
             scores: [],
 
+            gameStarted: false,
+
             /**
              * Handler for the "Start" button on the Title Screen.
              */
@@ -260,11 +262,20 @@ jQuery(function($){
                 IO.socket.emit('socket',App.$window.width(), App.$window.height(), App.gameId);
 
                 // If two players have joined, start the game!
-                if (App.Host.numPlayersInRoom === 2) {
+                if (App.Host.numPlayersInRoom === 1){
+                    App.Host.gameStarted = true;
+                    $(".createGameWrapper").prepend("<button id='quickStart'>Start Game Now</button>");
+                    $("#quickStart").click(function(){
+                        IO.socket.emit('hostRoomFull', App.gameId);
+                    });
+                }
+
+                if (App.Host.numPlayersInRoom === 4) {
                     // console.log('Room is full. Almost ready!');
 
                     // Let the server know that two players are present.
-                    IO.socket.emit('hostRoomFull', App.gameId);
+                    if(!App.Host.gameStarted) IO.socket.emit('hostRoomFull', App.gameId);
+                    App.Host.gameStarted = true;
                 }
             },
 
@@ -279,7 +290,7 @@ jQuery(function($){
 
                 // Begin the on-screen countdown timer
                 var $secondsLeft = $('#hostWord');
-                App.countDown( $secondsLeft, 3, function(){
+                App.countDown( $secondsLeft, 5, function(){
                     $('#svg').empty();
                     $secondsLeft.hide();
                     IO.socket.emit('hostCountdownFinished', App.gameId);
@@ -311,14 +322,6 @@ jQuery(function($){
                 });
             },
             removeCircle: function(html_id){
-                if(html_id[0] ==  'p'){
-                    $( '#' + html_id ).animate({
-                            r: 1
-                        },2000, function(){
-
-                        });
-                }
-                else if(html_id[0] == 'b') $('#' + html_id).hide('fold');
                 $('#' + html_id).remove();
             },
             addCircle: function(attrs){
@@ -329,15 +332,14 @@ jQuery(function($){
                 // console.log(attrs);
                 $('#svg').append(el);
                 $('#' + el.id).hide();
-                if(el.id[0] == 'a') $('#' + el.id).show('fade', 1000);
-                else $('#' + el.id).show();
+                // if(el.id[0] == 'a') $('#' + el.id).show('fade', 1000);
+                $('#' + el.id).show();
             },
             removeRing: function(html_id){
                 $('#' + html_id).removeAttr('stroke-width');
                 $('#' + html_id).removeAttr('stroke');
             },
             addRing: function(html_id){
-                console.log('add ring');
                 $('#' + html_id).attr('stroke-width', 8);
                 $('#' + html_id).attr('stroke', 'purple');
             },
@@ -349,14 +351,14 @@ jQuery(function($){
                 var str;
                 var color = ['green',' red','blue','yellow'];
                 if(player){
-                    str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>"+player+": " + App.Host.scores[player[player.length-1]-1].name + " is the winner!</p>";
+                    str = "<div style='font-size: 3vw; text-align: center'><p style='font-size: 3vw; text-align: center;'>"+player+": " + App.Host.scores[player[player.length-1]-1].name + " is the winner!</p>";
                     App.Host.scores[player[player.length-1]-1].score++;
                 }
-                else str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>Tie Game!</p>";
+                else str = "<div style='font-size: 3vw; text-align: center'><p style='font-size: 3vw; text-align: center;'>Tie Game!</p>";
                 for(var i in App.Host.scores){
-                    str += "<p style='font-size: 5vw; text-align: center; color:" + color[i] + "'>" + App.Host.scores[i].name + ": " + App.Host.scores[i].score + "</p>";
+                    str += "<p style='font-size: 3vw; text-align: center; color:" + color[i] + "'>" + App.Host.scores[i].name + ": " + App.Host.scores[i].score + "</p>";
                 }
-                str += "<button id='resetButton' class='btn' style='font-size: 5vw; text-align: center'>Play Again</button></div>";
+                str += "<button id='resetButton' class='btn' style='font-size: 3vw; text-align: center'>Play Again</button></div>";
                 App.$gameArea.html(str);
                 $('#resetButton').click(function(){
                     App.Host.gameCountdown();
@@ -441,24 +443,29 @@ jQuery(function($){
                     playerName : $('#inputPlayerName').val() || 'anon'
                 };
                 // Send the gameId and playerName to the server
-                IO.socket.emit('playerJoinGame', data);
                 IO.socket.on('shipMade', App.Player.onShipMade);
-                $('#gameArea').html('</script><style>#joystick, #swiper{display: inline-block;width: 50%;height: 100%;}</style><div id="joystick"></div><div id="swiper"></div>');
-                // App.$gameArea.html(App.$hootpad);
-                // $.ajax({
-                //     type: 'GET',
-                //     url: "http://192.168.1.3:8888/daniel",
-                //     dataType: 'jsonp',
-                //     success: function (data) {
-                //         // buttons = data[0].buttons;
-                //         $( "#hootpad-controller" ).html( data[0].code );
-                //         // for(i in buttons){
-                //         //     $("#"+buttons[i]).click()
-                //         // }
-                //     }
-                // });
+                App.$gameArea.html(App.$hootpad);
+                $.ajax({
+                    type: 'GET',
+                    url: "http://192.168.1.3:8888/gamepads/Touch",
+                    dataType: 'jsonp',
+                    success: function (response) {
+                        // buttons = data[0].buttons;
+                        IO.socket.emit('playerJoinGame', data);
+                        console.log()
+                        $( "#gameArea" ).html( response[0].code );
+                        // for(i in buttons){
+                        //     $("#"+buttons[i]).click()
+                        // }
+                    },
+                    error: function (response) {
+                        IO.socket.emit('playerJoinGame', data);
+                        $('#gameArea').html('</script><style>#joystick, #swiper{display: inline-block;width: 50%;height: 100%;}</style><div id="joystick"></div><div id="swiper"></div>');
 
-                // Set the appropriate properties for the current player.
+                    }
+                });
+
+                //Set the appropriate properties for the current player.
                 App.myRole = 'Player';
                 App.Player.myName = data.playerName;
             },

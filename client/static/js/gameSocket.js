@@ -340,7 +340,6 @@ var PlayGround = function(gameId) {
                 playerIndex = i;
             }
         }
-        console.log(count, playerIndex, _this.players, _this.deadPlayers);
         if(count <= 1){
             gameOver = true;
             io.to(gameId).emit('gameOver', _this.players[playerIndex].info.html_id || false);
