@@ -260,7 +260,7 @@ jQuery(function($){
                 IO.socket.emit('socket',App.$window.width(), App.$window.height(), App.gameId);
 
                 // If two players have joined, start the game!
-                if (App.Host.numPlayersInRoom === 1) {
+                if (App.Host.numPlayersInRoom === 2) {
                     // console.log('Room is full. Almost ready!');
 
                     // Let the server know that two players are present.
@@ -311,7 +311,13 @@ jQuery(function($){
                 });
             },
             removeCircle: function(html_id){
-                if(html_id[0] ==  'p') $('#' + html_id).hide('explode', 16);
+                if(html_id[0] ==  'p'){
+                    $( '#' + html_id ).animate({
+                            r: 1
+                        },2000, function(){
+
+                        });
+                }
                 else if(html_id[0] == 'b') $('#' + html_id).hide('fold');
                 $('#' + html_id).remove();
             },
@@ -325,14 +331,13 @@ jQuery(function($){
                 $('#' + el.id).hide();
                 if(el.id[0] == 'a') $('#' + el.id).show('fade', 1000);
                 else $('#' + el.id).show();
-                // $('#' + el.id).hide("explode", { pieces: 64 }, 2000);
-                
             },
             removeRing: function(html_id){
                 $('#' + html_id).removeAttr('stroke-width');
                 $('#' + html_id).removeAttr('stroke');
             },
             addRing: function(html_id){
+                console.log('add ring');
                 $('#' + html_id).attr('stroke-width', 8);
                 $('#' + html_id).attr('stroke', 'purple');
             },
@@ -344,8 +349,7 @@ jQuery(function($){
                 var str;
                 var color = ['green',' red','blue','yellow'];
                 if(player){
-                    str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>"+player+" is the winner!</p>";
-                    console.log(App.Host.scores, player.length, player);
+                    str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>"+player+": " + App.Host.scores[player[player.length-1]-1].name + " is the winner!</p>";
                     App.Host.scores[player[player.length-1]-1].score++;
                 }
                 else str = "<div style='font-size: 5vw; text-align: center'><p style='font-size: 12vw; text-align: center;'>Tie Game!</p>";
@@ -439,7 +443,7 @@ jQuery(function($){
                 // Send the gameId and playerName to the server
                 IO.socket.emit('playerJoinGame', data);
                 IO.socket.on('shipMade', App.Player.onShipMade);
-                $('#gameArea').html('<style>#joystick, #swiper{display: inline-block;width: 50%;height: 100%;}</style><div id="joystick"></div><div id="swiper"></div>');
+                $('#gameArea').html('</script><style>#joystick, #swiper{display: inline-block;width: 50%;height: 100%;}</style><div id="joystick"></div><div id="swiper"></div>');
                 // App.$gameArea.html(App.$hootpad);
                 // $.ajax({
                 //     type: 'GET',

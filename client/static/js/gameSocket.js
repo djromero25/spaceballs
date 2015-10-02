@@ -340,9 +340,10 @@ var PlayGround = function(gameId) {
                 playerIndex = i;
             }
         }
+        console.log(count, playerIndex, _this.players, _this.deadPlayers);
         if(count <= 1){
             gameOver = true;
-            io.to(gameId).emit('gameOver', _this.players[playerIndex].html_id || false);
+            io.to(gameId).emit('gameOver', _this.players[playerIndex].info.html_id || false);
         }
     }
     this.init = function() {
@@ -363,6 +364,7 @@ var PlayGround = function(gameId) {
         delta = 0;
         lastFrameTimeMS = 0;
         firstLoop = true;
+        var i;
         for(i in _this.deadPlayers){
             if(_this.deadPlayers[i] ){
                 _this.players[i] = _this.deadPlayers[i];
@@ -372,14 +374,22 @@ var PlayGround = function(gameId) {
         for(i in _this.players){
             _this.players[i].loadHome();
             _this.players[i].initialize();
+            bulletActive[i] =  false;
+            noBulletOnStart(i);
         }
         asteroids = [];
         gameOver = false;
-        for (var i = 0; i < 10; i++) {
+        for (i = 0; i < 10; i++) {
             addAsteroid();
         }
         _this.loop();
     };
+    function noBulletOnStart(index){
+        setTimeout(function(){
+            bulletActive[index] =  true;
+            if(_this.players[index]) io.sockets.in(gameId).emit('bulletReady', _this.players[index].info.html_id);
+        }, 3000);
+    }
 };
 /* **************************
           ASTEROID CODE
@@ -453,9 +463,9 @@ var Ship = function(cx, cy, r, shipNum, gameId) {
             cy: this.info.cy,
             r: this.info.r,
             id: this.info.html_id,
-            style: "fill: " + fillColor,
-            'stroke-width': 8,
-            stroke: 'purple'
+            style: "fill: " + fillColor
+            // 'stroke-width': 8,
+            // stroke: 'purple'
         };
         io.sockets.in(gameId).emit('newCircle', data);
     };
