@@ -256,7 +256,7 @@ jQuery(function($){
                 IO.socket.emit('socket',App.$window.width(), App.$window.height(), App.gameId);
 
                 // If two players have joined, start the game!
-                if (App.Host.numPlayersInRoom === 3) {
+                if (App.Host.numPlayersInRoom === 2) {
                     // console.log('Room is full. Almost ready!');
 
                     // Let the server know that two players are present.
@@ -275,8 +275,8 @@ jQuery(function($){
 
                 // Begin the on-screen countdown timer
                 var $secondsLeft = $('#hostWord');
-                App.countDown( $secondsLeft, 1, function(){
-                    App.Host.playerIds = {};
+                App.countDown( $secondsLeft, 3, function(){
+                    $('#svg').empty();
                     IO.socket.emit('hostCountdownFinished', App.gameId);
                 });
 

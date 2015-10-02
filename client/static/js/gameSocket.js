@@ -152,20 +152,20 @@ var onPlayerReady = function(pId){ playground.addPlayer(pId); };
 var runLoop = function(timestamp){ playground.loop(timestamp); };
 var onJoystickMove = function(data){
     var maxVel = 10;
-    var vx = data.dx / 20;
+    var vx = data.dx / 10;
     if(vx > maxVel) vx = maxVel;
     else if(vx < -1*maxVel) vx = -1*maxVel;
-    var vy = data.dy / 20;
+    var vy = data.dy / 10;
     if(vy > maxVel) vy = maxVel;
     else if(vy < -1*maxVel) vy = -1*maxVel;
     playground.setBothVelocity(data.pId-1, vx, vy);
 };
 var onSwipe = function(data){
     var maxVel = 15;
-    var vx = data.vx * -5;
+    var vx = data.vx * -8;
     if(vx > maxVel) vx = maxVel;
     else if(vx < -1*maxVel) vx = -1*maxVel;
-    var vy = data.vy * -5;
+    var vy = data.vy * -8;
     if(vy > maxVel) vy = maxVel;
     else if(vy < -1*maxVel) vy = -1*maxVel;
     playground.shootBullet(data.pId-1, vx, vy);
@@ -208,12 +208,13 @@ var PlayGround = function(gameId) {
         this.players.push(player);
     };
     this.setVelocity = function(shipNum, a, b) {
-        this.players[shipNum].setVelocity(a, b);
+        if(this.players[shipNum]) this.players[shipNum].setVelocity(a, b);
     };
     this.setBothVelocity = function(shipNum, vx, vy) {
-        this.players[shipNum].setBothVelocity(vx, vy);
+        if(this.players[shipNum]) this.players[shipNum].setBothVelocity(vx, vy);
     };
     this.shootBullet = function (shipNum, vx, vy){
+        if(!this.players[shipNum]) return;
         if(!bulletActive[shipNum]) return;
         bulletActive[shipNum] =  false;
         var cx = this.players[shipNum].info.cx + (this.players[shipNum].info.r + 15) * vx/Math.sqrt(vx*vx + vy*vy);
@@ -227,7 +228,7 @@ var PlayGround = function(gameId) {
         io.sockets.in(gameId).emit('bulletFired', _this.players[shipNum].info.html_id);
         setTimeout(function(){
             bulletActive[shipNum] =  true;
-            io.sockets.in(gameId).emit('bulletReady', _this.players[shipNum].info.html_id);
+            if(_this.players[shipNum]) io.sockets.in(gameId).emit('bulletReady', _this.players[shipNum].info.html_id);
         }, 5000);
     };
     this.setWindow = function(w,h) {
@@ -260,7 +261,7 @@ var PlayGround = function(gameId) {
             for (player in this.players) {
                 if(this.players[player]){
                     playerData = this.players[player].update(timestep);
-                    if(!playerData) someoneDied(player.info.html_id,player);
+                    if(!playerData) someoneDied(this.players[player].info.html_id,player);
                     else data.push(playerData);
                 }
             }
@@ -331,9 +332,17 @@ var PlayGround = function(gameId) {
         _this.deadPlayers[playerIndexToRemove] = _this.players[playerIndexToRemove];
         _this.players[playerIndexToRemove] = false;
         io.sockets.in(gameId).emit('removeCircle', html_id);
-        if(_this.players.length <= 1){
+        var count = 0;
+        var playerIndex = 0;
+        for(var i in _this.players){
+            if(_this.players[i]){
+                count++;
+                playerIndex = i;
+            }
+        }
+        if(count <= 1){
             gameOver = true;
-            io.to(gameId).emit('gameOver', _this.players[0].html_id);
+            io.to(gameId).emit('gameOver', _this.players[playerIndex].html_id || false);
         }
     }
     this.init = function() {
@@ -350,6 +359,22 @@ var PlayGround = function(gameId) {
             x: 100,
             y: _H - 100
         }];
+        astTime = 300;
+        delta = 0;
+        lastFrameTimeMS = 0;
+        firstLoop = true;
+        for(i in _this.deadPlayers){
+            if(_this.deadPlayers[i] ){
+                _this.players[i] = _this.deadPlayers[i];
+                _this.deadPlayers[i] = false;
+            }
+        }
+        for(i in _this.players){
+            _this.players[i].loadHome();
+            _this.players[i].initialize();
+        }
+        asteroids = [];
+        gameOver = false;
         for (var i = 0; i < 10; i++) {
             addAsteroid();
         }
@@ -411,6 +436,8 @@ var Ship = function(cx, cy, r, shipNum, gameId) {
     var color = ['green',' red','blue','yellow'];
     var _this = this;
     var fillColor = color[shipNum - 1];
+    var initX = cx;
+    var initY = cy;
 
     this.info = {
         cx: cx,
@@ -450,7 +477,12 @@ var Ship = function(cx, cy, r, shipNum, gameId) {
         this.info.cy = this.info.cy + this.info.vy * time / vFactor;
         return {cx: this.info.cx, cy: this.info.cy, html_id: this.info.html_id};
     };
-  
+    this.loadHome = function(){
+        this.info.cx = initX;
+        this.info.cy = initY;
+        this.info.vx = 0;
+        this.info.vy = 0;
+    }
     this.initialize();
 };
 var Bullet = function(cx, cy, r, vx, vy, html_id, color, gameId) {
