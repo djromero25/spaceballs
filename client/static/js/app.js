@@ -294,7 +294,7 @@ jQuery(function($){
 
                 // Begin the on-screen countdown timer
                 var $secondsLeft = $('#hostWord');
-                App.countDown( $secondsLeft, 5, function(){
+                App.countDown( $secondsLeft, 3, function(){
                     $('#svg').empty();
                     $secondsLeft.hide();
                     IO.socket.emit('hostCountdownFinished', App.gameId);
